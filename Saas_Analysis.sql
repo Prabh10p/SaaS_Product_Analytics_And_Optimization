@@ -60,21 +60,36 @@ from ravenstack_subscriptions
 group by plan_tier;
 
 # (d) How many subscriptions are active vs churned?
-
-
+select 
+sum(case when churn_flag="True" then 1
+else 0 end) as "churned",
+sum(case when churn_flag="False" then 1 else 0
+end) as "active"
+from ravenstack_subscriptions;
 
 # 4- Explanatory Data Analysis(Feature Usage)
 
 # (a) Count total usage events.
+select sum(usage_count) as total_event from ravenstack_feature_usage;
 
-
-# (b) Most frequently used features (feature_name) overall.
-
+# (b) Most frequently used features (feature_name) overall. --  feature_32
+select feature_name,sum(usage_count) 
+from ravenstack_feature_usage
+group by feature_name
+order by sum(usage_count) desc limit 1;
 
 # (c) Average usage_count and usage_duration_secs per feature.
-
+select feature_name,avg(usage_count),avg(usage_duration_secs) from 
+ravenstack_feature_usage
+group by feature_name;
 
 # (d) Beta features usage vs regular features.
+select 
+sum(case when is_beta_feature="True" then 1
+else 0 end) as "Beta feature usage",
+sum(case when is_beta_feature="False" then 1 else 0
+end) as "Regular Feature"
+from ravenstack_feature_usage;
 
 
 
