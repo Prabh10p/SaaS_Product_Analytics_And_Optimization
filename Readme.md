@@ -23,8 +23,8 @@ RavenStack is a B2B SaaS company offering multiple subscription plans and produc
 
 
 # 4 Tools & Skills
-Python: Pandas, NumPy, Matplotlib, Seaborn
-SQL: Analytical queries, joins, aggregations
-Tableau: Dashboards & visual storytelling
-Business Analytics: Product metrics, churn analysis, retention strategy
-Skills Highlighted: Product analytics, revenue optimization, customer segmentation, decision-making
+- Python: Pandas, NumPy, Matplotlib, Seaborn
+- SQL: Analytical queries, joins, aggregations
+- Tableau: Dashboards & visual storytelling
+- Business Analytics: Product metrics, churn analysis, retention strategy
+- Skills Highlighted: Product analytics, revenue optimization, customer segmentation, decision-making
