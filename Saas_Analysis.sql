@@ -6,7 +6,7 @@ select * from ravenstack_accounts;
 select * from ravenstack_churn_events;
 select * from ravenstack_feature_usage;
 select * from ravenstack_subscriptions;
-select * from ravenstack_support_ticketsravenstack_accountsravenstack_accounts;
+select * from ravenstack_support_tickets;
 
 
 
@@ -97,33 +97,54 @@ from ravenstack_feature_usage;
 # 5 - Explanatory Data Analysis(Support Tickets)
 
 # (a) Count total tickets by priority.
-
+select priority, count(*) from ravenstack_support_tickets
+group by priority
+order by count(*) desc;
 
 # (b) Average resolution_time_hours per priority.
+select priority, avg(resolution_time_hours) from ravenstack_support_tickets
+group by priority;
+
 
 
 # (c) Count tickets by satisfaction_score.
+select satisfaction_score,count(*) from ravenstack_support_tickets
+group by satisfaction_score;
+
+# (d) Count Tickets with escalations (escalation_flag = TRUE).
+select count(*) from ravenstack_support_tickets
+where escalation_flag = "TRUE";
 
 
-# (d) Tickets with escalations (escalation_flag = TRUE).
-
-
-
-# 5 - Explanatory Data Analysis(Churn Events)
+# 6 - Explanatory Data Analysis(Churn Events)
 
 # (a) Count churn events by reason_code.
-
+select * from ravenstack_churn_events;
+select reason_code, count(*) from ravenstack_churn_events
+group by reason_code;
 
 # (b) Average refund_amount_usd.
+select avg(refund_amount_usd) from ravenstack_churn_events;
+
+# (c) Count churn rate with/without prior upgrade(Using CTE)
+
+with 
+q1 as (
+select count(*)*100/(select count(*) from ravenstack_churn_events) as 'churn1'
+from ravenstack_churn_events
+where preceding_upgrade_flag = "False"),
+q2 as
+(select count(*)*100/(select count(*) from ravenstack_churn_events) as 'churn2'
+from ravenstack_churn_events
+where preceding_upgrade_flag = "True")
+
+select  churn1 as 'churn without upgrade', churn2 as 'churn with upgrade' from q1,q2;
 
 
-# (c) Count churn with/without prior upgrade/downgrade.
-
-
-# (d) Count churn events that were reactivations.
-
-
-
+# (d) Count churn rate of events that were reactivations.
+select count(*)*100/(select count(*) from ravenstack_churn_events) as 'churn rate'
+from ravenstack_churn_events
+where is_reactivation = "True";
 
 
 
@@ -132,7 +153,10 @@ from ravenstack_feature_usage;
 
 
 
-2. Intermediate Analytics (Cross-Table)
+
+
+
+# 2. Intermediate Analytics (Cross-Table)
 Top 10 accounts with most subscriptions or upgrades.
 Accounts with highest churn risk (join accounts + subscriptions + churn_events).
 Correlation between feature_usage and churn (do high usage accounts churn less?).
