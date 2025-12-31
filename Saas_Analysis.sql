@@ -157,12 +157,57 @@ where is_reactivation = "True";
 
 
 # 2. Intermediate Analytics (Cross-Table)
-Top 10 accounts with most subscriptions or upgrades.
-Accounts with highest churn risk (join accounts + subscriptions + churn_events).
-Correlation between feature_usage and churn (do high usage accounts churn less?).
-Average subscription duration (end_date - start_date) by plan_tier.
-Tickets per account vs account size (seats) – which accounts generate more tickets?
-Average satisfaction score per industry or country.
+-- (a) Top 10 accounts with most subscriptions or upgrades.
+select a.account_name,count(*) as 'Subscriptions' from
+ravenstack_accounts a 
+inner join ravenstack_subscriptions s
+on 
+a.account_id = s.account_id
+group by 
+a.account_name
+order by count(s.upgrade_flag) desc limit 10;
+
+
+-- (b) Accounts with highest churn risk
+# chrun risk - if customer churned, if downgraded, if not auto_renewed
+SELECT DISTINCT
+    a.account_id
+FROM ravenstack_accounts a
+JOIN ravenstack_subscriptions s
+    ON a.account_id = s.account_id
+JOIN ravenstack_churn_events c
+    ON a.account_id = c.account_id
+WHERE
+    (
+        s.churn_flag = TRUE
+        OR s.downgrade_flag = TRUE
+        OR s.auto_renew_flag = FALSE
+    )
+or
+    c.is_reactivation = FALSE
+or
+    c.preceding_upgrade_flag = TRUE;
+-- (c) Correlation between feature_usage and churn (do high usage accounts churn less?).
+
+
+SET SQL_SAFE_UPDATES = 0;
+update ravenstack_subscriptions
+set end_date = current_date()
+where end_date is null;
+-- (d) Average subscription duration (end_date - start_date) by plan_tier.
+SELECT a.plan_tier,
+       AVG(DATEDIFF(s.end_date, s.start_date)) AS avg_duration_days
+FROM ravenstack_accounts a
+JOIN ravenstack_subscriptions s
+  ON a.account_id = s.account_id  -- replace with your actual key column
+GROUP BY a.plan_tier
+ORDER BY avg_duration_days;
+
+-- (e) Tickets per account vs account size (seats) – which accounts generate more tickets?
+
+
+
+-- (f) Average satisfaction score per industry or country.
 3. Revenue & Product Metrics
 Total MRR & ARR per month/year.
 Churned revenue (sum of ARR of churned subscriptions).
