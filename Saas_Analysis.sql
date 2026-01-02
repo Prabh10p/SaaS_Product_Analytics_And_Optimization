@@ -42,6 +42,7 @@ else 0 end) as "paid"
 from ravenstack_accounts;
 
 
+
 # 3- Explanatory Data Analysis(Subscriptions)
 # (a) Count total subscriptions and group by plan_tier.
 select plan_tier,count(*) as total_subscriptions
@@ -67,8 +68,8 @@ sum(case when churn_flag="False" then 1 else 0
 end) as "active"
 from ravenstack_subscriptions;
 
-# 4- Explanatory Data Analysis(Feature Usage)
 
+# 4- Explanatory Data Analysis(Feature Usage)
 # (a) Count total usage events.
 select sum(usage_count) as total_event from ravenstack_feature_usage;
 
@@ -94,6 +95,7 @@ from ravenstack_feature_usage;
 
 
 
+
 # 5 - Explanatory Data Analysis(Support Tickets)
 
 # (a) Count total tickets by priority.
@@ -114,6 +116,8 @@ group by satisfaction_score;
 # (d) Count Tickets with escalations (escalation_flag = TRUE).
 select count(*) from ravenstack_support_tickets
 where escalation_flag = "TRUE";
+
+
 
 
 # 6 - Explanatory Data Analysis(Churn Events)
@@ -151,12 +155,7 @@ where is_reactivation = "True";
 
 
 
-
-
-
-
-
-# 2. Intermediate Analytics (Cross-Table)
+# 2. Intermediate Analytics
 -- (a) Top 10 accounts with most subscriptions or upgrades.
 select a.account_name,count(*) as 'Subscriptions' from
 ravenstack_accounts a 
@@ -203,23 +202,95 @@ JOIN ravenstack_subscriptions s
 GROUP BY a.plan_tier
 ORDER BY avg_duration_days;
 
--- (e) Tickets per account vs account size (seats) – which accounts generate more tickets?
 
 
 
--- (f) Average satisfaction score per industry or country.
-3. Revenue & Product Metrics
-Total MRR & ARR per month/year.
-Churned revenue (sum of ARR of churned subscriptions).
-Expansion vs contraction revenue (upgrade_flag vs downgrade_flag).
-Cohort analysis: revenue retention by signup month.
-Average revenue per seat per plan tier.
-4. Customer & Engagement Analysis
-Number of active vs inactive users per subscription.
-Feature adoption rate per plan tier.
-Time from signup to first feature usage.
-Accounts with zero feature usage but active subscriptions.
-Ticket volume vs feature usage (does low usage generate more support?).
+# 3. Revenue & Product Metrics
+# (a) Total MRR & ARR  per month/year
+select sum(mrr_amount) as mrr,sum(arr_amount) as arr
+from ravenstack_subscriptions;
+
+# (B) Churned revenue (sum of ARR of churned subscriptions).
+select sum(arr_amount) as arr
+from ravenstack_subscriptions
+where churn_flag = "True";
+
+# (c) Expansion vs contraction revenue (upgrade_flag vs downgrade_flag).
+with 
+q1 
+as (select sum(arr_amount) as arr
+from ravenstack_subscriptions
+where upgrade_flag = "True"),
+q2 
+as (select sum(arr_amount) as arr2
+from ravenstack_subscriptions
+where downgrade_flag = "True")
+
+select arr as 
+'upgrade_flag_revenue',arr2 as 'downgrade_flag_revenue'
+from q1,q2;
+
+# (d) Cohort analysis: revenue retention by signup month
+
+
+# (c) Calculate MoM Growth
+with retention_cohort1 as 
+(select date_format(start_date,'%y-%m-01') as 'data' 
+,sum(arr_amount) as 'total'
+from ravenstack_subscriptions
+group by data
+order by data asc)
+
+select data,total,(total - lag(total)over(order by data))*100/lag(total)over(order by data) as 'mom'
+from retention_cohort1;
+
+
+
+# (d) Calculate YoY Growth
+
+with retention_cohort as (select date_format(start_date,'%Y-%m') as 'data' 
+,sum(arr_amount) as 'total'
+from ravenstack_subscriptions
+group by data
+order by data asc)
+select data,total,(total - lag(total)over(order by data))*100/lag(total)over(order by data) as 'mom'
+from retention_cohort;
+
+
+# (E) Average revenue per seat per plan tier.
+# arr_amount = avg revenue per seat* no of seats
+SELECT
+  plan_tier,
+  AVG(arr_amount / NULLIF(seats, 0)) AS avg_revenue_per_seat
+FROM ravenstack_subscriptions
+GROUP BY plan_tier;
+
+
+
+
+
+# 4. Customer & Engagement Analysis
+# (a) Number of active vs inactive users per subscription.
+select
+sum( case when churn_flag="False" then 1 else 0
+end) as 'Active Users',
+sum(case when churn_flag="True" then 1 else 0
+end) as "Inactive Users"
+from ravenstack_subscriptions;
+
+
+# (b) Feature Usage rate per plan tier.
+select s.plan_tier,sum(usage_count)*100/(select sum(usage_count) from ravenstack_feature_usage)
+from ravenstack_subscriptions s
+join ravenstack_feature_usage f
+on  
+s.subscription_id= f.subscription_id
+group by s.plan_tier; 
+
+
+# (c) Time from signup to first feature usage.
+# (d) Accounts with zero feature usage but active subscriptions.
+# (e) Ticket volume vs feature usage (does low usage generate more support?).
 5. Advanced Product & Business Insights
 Identify power users (top 5% usage) and their retention rates.
 Predictive insights (SQL-level approximations):
